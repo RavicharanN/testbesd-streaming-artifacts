@@ -20,62 +20,19 @@ If your notebook runs without any issues you will see an output in the "Network 
 Note: Currently we run both producer and consumer on node-1 but will be moved out that host in the final repo 
 
 ## Set up MinIO artifact store on Node 1
-
   
 
-On node1 we will set up MinIO, an S3-compatible object storage, as an artifact store so that you don’t need to have AWS account to run this experiment. We will move the docker-compose files to node1 in a similar way we did for node 1.
-
-  
-
-Navigate to the directory where the docker-compose-minio.yaml file is located and run
-
-  
+On node-1 run:
 
 ```
-
-scp -i <path to your private key> docker-compose-minio.yaml cc@your_public_ip:/home/
-
-```
-
-  
-
-Then on node-0 run:
-
-  
-
-```
-
-scp /home/docker-compose-minio.yaml node-1:/home/
-
-```
-
-  
-
-Finally, on node-1 run:
-
-```
-
 docker compose -f /home/docker-compose-minio.yaml up -d
 
 ```
-
-  
 
 This will create an artifact store and also initialize and empty bucket named `flight-info` on node1
 
 ## Setting up Postgres server on Node 2
 
-The Docker Compose file required to set up the Postgres database is provided in this repository. First, navigate to the directory where the docker-compose-postgres.yaml file is located. Since Node 0 is the only node exposed to the public, you must transfer the file to Node 0 first and then forward it to Node 2.
-
-```
-scp -i <path to your private key> postgres/docker-compose-postgres.yaml cc@your_public_ip:/home/
-```
-
-This will move the YAML file to node 0. Then on node 0 run: 
-
-```
-scp  /home/docker-compose-postgres.yaml node-2:/home/
-```
 
 Finally on node-2 run 
 ```
@@ -83,6 +40,28 @@ docker compose -f /home/docker-compose-postgres.yaml up -d
 ```
 
 You can do a `docker ps` to check if the postgres server is succesfully up and running. 
+
+## Setting up the RedPanda brokers on Node1 
+
+```
+docker compose -f /home/docker-compose-redpanda.yaml up -d
+```
+
+This should create a redpanda broker that runs on `192.168.1.11:9092`. Run a  `docker ps` to verify the container name redpanda. 
+
+To create a new topic `flight-info` run: 
+
+```
+docker exec -it <container_id> rpk topic create flight-info
+```
+
+
+###  Notes
+
+1. Move the data to Minio S3 store
+2. Create a Redpanda broker and a topic 
+3. Producer reads every row and pushes it to the topic every 0.5 seconds
+4. Consumer consumers from the topic every 1 second and inserts it into postgres running on node2 
 
 
 This material is based upon work supported by the National Science Foundation under Grant No. 2230079.
